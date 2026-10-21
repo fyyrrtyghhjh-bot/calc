@@ -18,12 +18,29 @@ jobs:
       - name: Create Capacitor project
         run: |
           mkdir www
-          cp index.html www/index.html
+          cp "$(ls calc-*.html | sort -V | tail -1)" www/index.html
           npm init -y
           npm install @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7 @capacitor/app-launcher@^7
           npx cap init "Калькулятор" com.example.calc --web-dir www
           npx cap add android
-          sed -i 's#</manifest>#    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n</manifest>#' android/app/src/main/AndroidManifest.xml
+          sed -i 's#</manifest>#    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />\n    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />\n    <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />\n</manifest>#' android/app/src/main/AndroidManifest.xml
+          D=android/app/src/main/java/com/example/calc
+          mkdir -p $D
+          cp "$(ls plugin-*.java | sort -V | tail -1)" $D/LaunchPlugin.java
+          cat > $D/MainActivity.java << 'EOF2'
+          package com.example.calc;
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              registerPlugin(LaunchPlugin.class);
+              super.onCreate(savedInstanceState);
+            }
+          }
+          EOF2
           npx cap sync android
       - name: Build APK
         working-directory: android
