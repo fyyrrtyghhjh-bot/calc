@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Калькулятор</title>
+<style>
+:root{--bg:#111;--panel:#1b1b1f;--key:#2a2a30;--op:#ff9f0a;--fn:#4a4a52;--tx:#fff;--mut:#8a8a93;--ok:#30d158;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f2f2f7;--panel:#fff;--key:#fff;--fn:#d1d1d6;--tx:#111;--mut:#6b6b73}}
+:root[data-theme="light"]{--bg:#f2f2f7;--panel:#fff;--key:#fff;--fn:#d1d1d6;--tx:#111;--mut:#6b6b73}
+:root[data-theme="dark"]{--bg:#111;--panel:#1b1b1f;--key:#2a2a30;--fn:#4a4a52;--tx:#fff;--mut:#8a8a93}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,Roboto,sans-serif;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+#disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;padding:16px 22px;min-height:0}
+#ex{color:var(--mut);font-size:22px;min-height:28px;word-break:break-all;text-align:right}
+#res{font-size:56px;font-weight:300;word-break:break-all;text-align:right}
+#pad{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px;max-width:480px;width:100%;box-sizing:border-box;margin:0 auto}
+#pad button{height:min(17vw,76px);border:0;border-radius:50px;font-size:28px;background:var(--key);color:var(--tx)}
+#pad button:active{filter:brightness(1.4)}
+#pad .f{background:var(--fn)}#pad .o{background:var(--op);color:#fff}
+.ov{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;padding:calc(14px + env(safe-area-inset-top,0px)) 16px calc(14px + env(safe-area-inset-bottom,0px));overflow:auto;z-index:9}
+.ov.on{display:flex}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.top h2{margin:0;font-size:22px}
+.btn{background:var(--op);color:#fff;border:0;border-radius:12px;padding:10px 16px;font-size:16px}
+.btn.g{background:var(--fn);color:var(--tx)}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs .btn{flex:1;background:var(--fn);color:var(--tx)}.tabs .btn.a{background:var(--op);color:#fff}
+.card{background:var(--panel);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.card span{flex:1;word-break:break-word}
+input,textarea,select{width:100%;box-sizing:border-box;background:var(--panel);color:var(--tx);border:1px solid var(--fn);border-radius:10px;padding:10px;font-size:16px;margin-bottom:8px;font-family:inherit;-webkit-user-select:text;user-select:text}
+label{display:block;color:var(--mut);font-size:14px;margin:10px 0 4px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.tile{background:var(--panel);border-radius:16px;padding:16px 6px;text-align:center;border:0;color:var(--tx);font-size:14px;position:relative}.tile i{display:block;font-style:normal;font-size:30px;margin-bottom:6px}.tile.last{outline:2px solid var(--op)}.tile .x{position:absolute;top:2px;right:8px;color:var(--mut);padding:4px}
+.tile img{width:100%;height:84px;object-fit:cover;border-radius:10px;margin-bottom:6px;display:block}.tile small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#disp{position:relative}#fb{position:absolute;top:10px;left:14px;padding:8px 12px;font-size:14px}
+.pr{display:flex;gap:6px;margin-bottom:8px}.pr>*{margin:0;width:auto;min-width:0}.pq{flex:2}.pv{flex:1.4}.pu{flex:1.1}
+#tm{flex-wrap:wrap}#tm .btn{flex:1 0 28%}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:16px 8px;margin:14px 0;background:var(--panel);border-radius:24px;padding:18px 10px}
+.app{background:none;border:0;color:var(--tx);display:flex;flex-direction:column;align-items:center;gap:7px;position:relative;padding:2px 0;font-size:13px;min-width:0}
+.app .ico{width:60px;height:60px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;font-weight:600;box-shadow:0 6px 14px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.28);transition:transform .12s}
+.app:active .ico{transform:scale(.92)}
+.app .nm{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app.last .ico{outline:3px solid var(--op);outline-offset:3px}
+.app.add .ico{background:transparent;box-shadow:none;border:2px dashed var(--mut);color:var(--mut)}
+.app .x{display:none;position:absolute;top:-4px;right:4px;width:22px;height:22px;border-radius:50%;background:#ff453a;color:#fff;font-size:12px;align-items:center;justify-content:center;z-index:2;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.agrid.edit .x{display:flex}
+.agrid.edit .app:not(.add) .ico{animation:wig .3s infinite alternate}
+@keyframes wig{from{transform:rotate(-2.5deg)}to{transform:rotate(2.5deg)}}
+#aed.on{background:var(--op);color:#fff}
+#tm .btn{border-radius:999px;padding:8px 10px;font-size:14px}
+#ex,#res{position:relative}
+#msg{color:var(--ok);font-size:14px;min-height:18px}
+</style>
+</head>
+<body>
+<div id="disp"><div id="petbox" style="position:absolute;left:0;right:0;bottom:84px;height:110px;pointer-events:none"></div><button class="btn g" id="fb">ƒ Формули</button><div id="ex"></div><div id="res">0</div></div>
+<div id="pad"></div>
+
+<div class="ov" id="vault">
+  <div class="top"><h2>🔐 Сейф</h2><button class="btn g" data-close>Закрити</button></div>
+  <button class="btn g" id="toapps" style="margin-bottom:12px">📱 Програми</button>
+  <div class="tabs"><button class="btn a" data-vt="n">Нотатки</button><button class="btn" data-vt="f">Фото й файли</button></div>
+  <div id="tnotes"><textarea id="nt" rows="3" placeholder="Нова нотатка"></textarea><button class="btn" id="addn">Додати</button><div id="nl" style="margin-top:12px"></div></div>
+  <div id="tfiles" style="display:none"><input type="file" id="fi" multiple hidden><button class="btn" id="addf">+ Додати файли</button><div id="fl" class="grid" style="margin-top:12px"></div></div>
+  
+</div>
+
+<div class="ov" id="phys">
+  <div class="top"><h2>ƒ Формули</h2><button class="btn g" data-close>Закрити</button></div>
+  <select id="fs"></select>
+  <div id="ff" style="margin-top:8px;color:var(--mut)"></div>
+  <div id="fv" style="margin-top:6px"></div>
+  <div style="display:flex;gap:8px;margin-top:8px"><button class="btn" id="fc" style="flex:1">Порахувати</button><button class="btn g" id="fx">Очистити</button></div>
+  <div id="fr" style="margin-top:14px;font-size:18px"></div>
+</div>
+
+<div class="ov" id="prob">
+  <div class="top"><h2>📝 Задача</h2><button class="btn g" data-close>Закрити</button></div>
+  <b>Дано</b>
+  <div id="pg" style="margin-top:8px"></div>
+  <button class="btn g" id="pa">+ Додати дано</button>
+  <div style="margin:14px 0 6px"><b>Знайти</b></div>
+  <div class="pr"><select id="pt" class="pq"></select><select id="ptu" class="pu"></select></div>
+  <div style="display:flex;gap:8px;margin-top:6px"><button class="btn" id="ps" style="flex:1">Розв’язати</button><button class="btn g" id="px">Очистити</button></div>
+  <div id="po" class="card" style="display:block;white-space:pre-wrap;margin-top:14px;font-size:16px"></div>
+</div>
+
+<div class="ov" id="viewer">
+  <div class="top"><h2 id="vt" style="font-size:16px;word-break:break-all"></h2><button class="btn g" data-close>Закрити</button></div>
+  <div id="vb"></div>
+</div>
+
+<div class="ov" id="appsv">
+  <div class="top"><h2>📱 Програми</h2><div style="display:flex;gap:8px"><button class="btn g" id="aed">✎ Змінити</button><button class="btn g" data-close>Закрити</button></div></div>
+  <label style="margin-top:0">Таймер: через скільки повернути в калькулятор</label>
+  <div class="tabs" id="tm"><button class="btn" data-tm="0">Без</button><button class="btn" data-tm="60">1 хв</button><button class="btn" data-tm="300">5 хв</button><button class="btn" data-tm="900">15 хв</button><button class="btn" data-tm="1800">30 хв</button><button class="btn" data-tm="3600">1 год</button></div>
+  <input id="tmc" inputmode="numeric" placeholder="Або свій час у хвилинах">
+  <div id="ovn" style="display:none;margin:4px 0 8px;padding:10px 12px;background:var(--panel);border-radius:12px;font-size:13px;color:var(--mut)">⚠ Немає дозволу «Показувати поверх інших програм». Програми відкриваються як звичайно, але <b>не працюють</b> кнопка «назад» над програмою, таймер повернення та персонаж.<br><button class="btn" id="ovb" style="margin-top:8px;padding:6px 12px;font-size:13px">Дати дозвіл</button></div>
+  <label>Автоклікер: кнопка в запущеній програмі</label>
+  <div class="tabs"><button class="btn" data-ac="1">Увімк</button><button class="btn" data-ac="0">Вимк</button></div>
+  <div id="acn" style="display:none;margin:4px 0 8px;padding:10px 12px;background:var(--panel);border-radius:12px;font-size:13px;color:var(--mut)">⚠ Для автоклікера потрібно: <b>1)</b> дозвіл «Показувати поверх інших програм», <b>2)</b> увімкнена служба «Калькулятор: автоклікер» у налаштуваннях спеціальних можливостей (вона лише імітує натискання, вміст екрана не читає). Без цього кнопки автоклікера в програмі не буде.<br><button class="btn" id="acp" style="margin-top:8px;padding:6px 12px;font-size:13px">Дозвіл поверх програм</button> <button class="btn" id="acs" style="margin-top:8px;padding:6px 12px;font-size:13px">Увімкнути службу</button></div>
+  <div class="agrid" id="al"></div>
+  <div id="msg" style="margin-top:10px"></div>
+  <div id="af" style="display:none"><label>Нова програма</label>
+  <input id="an" placeholder="Назва, напр. Камера"><input id="ap" placeholder="Пакет, напр. com.android.camera"><input id="ae" placeholder="Іконка-емодзі (необов’язково), напр. 📷">
+  <button class="btn" id="adda">Додати</button></div>
+</div>
+
+<div class="ov" id="sett">
+  <div class="top"><h2>⚙️ Налаштування</h2><button class="btn g" data-close>Закрити</button></div>
+  <label>Код сейфа (3–8 цифр)</label><input id="c1" inputmode="numeric" maxlength="8">
+  <label>Код налаштувань (3–8 цифр)</label><input id="c2" inputmode="numeric" maxlength="8">
+  <label>Код екрана програм (3–8 цифр)</label><input id="c3" inputmode="numeric" maxlength="8">
+  <label>Код розв’язувача задач (3–8 цифр)</label><input id="c4" inputmode="numeric" maxlength="8">
+  <label>Код фальшивого сейфа (3–8 цифр)</label><input id="c5" inputmode="numeric" maxlength="8">
+  <label>Тема</label>
+  <div class="tabs"><button class="btn" data-th="auto">Авто</button><button class="btn" data-th="dark">Темна</button><button class="btn" data-th="light">Світла</button></div>
+  <label>Ховати запущені програми зі списку останніх</label>
+  <div class="tabs"><button class="btn" data-hd="1">Увімк</button><button class="btn" data-hd="0">Вимк</button></div>
+  <label>Ховати сам калькулятор зі списку останніх</label>
+  <div class="tabs"><button class="btn" data-hs="1">Увімк</button><button class="btn" data-hs="0">Вимк</button></div>
+  <label>Кнопка «назад у калькулятор» поверх програм</label>
+  <div class="tabs"><button class="btn" data-bk="1">Увімк</button><button class="btn" data-bk="0">Вимк</button></div>
+  <div id="bkm" style="color:var(--mut);font-size:13px">Потрібен дозвіл «Показувати поверх інших програм». Без нього програми відкриваються як звичайно, але немає кнопки «назад» над програмою і не працює таймер повернення: повертатись доведеться вручну через список останніх програм.</div>
+  <label>Персонаж у калькуляторі</label>
+  <div class="tabs"><button class="btn" data-pt="1">Увімк</button><button class="btn" data-pt="0">Вимк</button></div>
+  <label>Персонаж поверх програм (потрібен дозвіл «поверх програм»)</label>
+  <div class="tabs"><button class="btn" data-pa="1">Увімк</button><button class="btn" data-pa="0">Вимк</button></div>
+  <label>Автоблокування за бездіяльності</label>
+  <div class="tabs"><button class="btn" data-id="0">Вимк</button><button class="btn" data-id="15">15 с</button><button class="btn" data-id="60">1 хв</button><button class="btn" data-id="300">5 хв</button></div>
+  <label>Блокування після помилок коду</label>
+  <div class="tabs"><button class="btn" data-lk="1">Увімк</button><button class="btn" data-lk="0">Вимк</button></div>
+  <label>Помилок до блокування</label>
+  <div class="tabs"><button class="btn" data-ln="3">3</button><button class="btn" data-ln="5">5</button><button class="btn" data-ln="10">10</button></div>
+  <label>Час блокування</label>
+  <div class="tabs"><button class="btn" data-lm="1">1 хв</button><button class="btn" data-lm="5">5 хв</button><button class="btn" data-lm="30">30 хв</button></div>
+  <div style="height:12px"></div>
+  <button class="btn" id="save">Зберегти</button>
+  <div id="smsg" style="color:var(--ok);margin-top:8px"></div>
+  <label style="margin-top:22px">Резервна копія (шифрується паролем)</label>
+  <input id="bp" type="password" placeholder="Пароль для копії, від 4 символів">
+  <div class="tabs"><button class="btn" data-bf="1">З фото й файлами</button><button class="btn" data-bf="0">Тільки нотатки й налаштування</button></div>
+  <div class="tabs"><button class="btn" id="bs">💾 Зберегти копію</button><button class="btn" id="br">📥 Відновити</button></div>
+  <input type="file" id="bi" hidden>
+  <div id="bm" style="color:var(--ok);margin-top:8px;word-break:break-word"></div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const D={c1:'1111',c2:'0000',c3:'2222',last:'',hide:true,hideself:false,back:false,timer:0,c4:'12345',c5:'9999',bf:true,ac:false,pet:true,pa:true,dn:['Купити: хліб, молоко, яйця, сир','Скинути сестрі рецепт борщу','Записати показники лічильників','Подивитись фільм на вихідних'],idle:60,lkOn:true,lkN:5,lkMin:5,fails:0,until:0,theme:'auto',notes:[],apps:[
+{n:'Chrome',p:'com.android.chrome'},{n:'YouTube',p:'com.google.android.youtube'},{n:'Telegram',p:'org.telegram.messenger'},{n:'Налаштування',p:'com.android.settings'}]};
+let S;
+function load(){try{S=Object.assign({},D,JSON.parse(localStorage.getItem('calc')||'{}'))}catch(e){S=Object.assign({},D)}}
+function save(){try{localStorage.setItem('calc',JSON.stringify(S))}catch(e){}}
+load();
+function theme(){const r=document.documentElement;S.theme==='auto'?r.removeAttribute('data-theme'):r.setAttribute('data-theme',S.theme)}
+theme();
+
+const keys=[['C','f'],['⌫','f'],['%','f'],['÷','o'],['7'],['8'],['9'],['×','o'],['4'],['5'],['6'],['−','o'],['1'],['2'],['3'],['+','o'],['±','f'],['0'],['.'],['=','o']];
+const pad=$('#pad');
+keys.forEach(([k,c])=>{const b=document.createElement('button');b.textContent=k;if(c)b.className=c;b.onclick=()=>press(k);pad.appendChild(b)});
+
+let ex='';
+function show(r){$('#ex').textContent=ex;if(r!==undefined)$('#res').textContent=r}
+function calc(s){
+  const e=s.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');
+  if(!/^[0-9+\-*/.() ]+$/.test(e))return 'Помилка';
+  try{const v=Function('"use strict";return ('+e+')')();
+    if(!isFinite(v))return 'Помилка';return String(+v.toPrecision(12))}catch(x){return 'Помилка'}
+}
+function press(k){if(PET){PET.poke();if(k==='C')PET.react('sad','\uD83D\uDCA7',900,false)}
+  const ops='+−×÷';
+  if(k==='C'){ex='';show('0')}
+  else if(k==='⌫'){ex=ex.slice(0,-1);show(ex?calc(ex.replace(/[+−×÷.]$/,'')):'0')}
+  else if(k==='='){
+    if(/^\d+$/.test(ex)){
+      const now=Date.now(),locked=S.lkOn&&S.until>now;
+      const hit=ex===S.c1?'vault':ex===S.c2?'sett':ex===S.c3?'appsv':ex===S.c4?'prob':ex===S.c5?'decoy':'';
+      if(hit&&!locked){S.fails=0;save();ex='';show('0');open(hit);return}
+      if(S.lkOn&&ex.length>=3&&!locked){S.fails=(S.fails||0)+1;if(S.fails>=S.lkN){S.until=now+S.lkMin*60000;S.fails=0}save()}
+    }else if(/[+−×÷]/.test(ex)&&S.fails){S.fails=0;save()}
+    const r=calc(ex.replace(/[+−×÷.]$/,'')||'0');ex=r==='Помилка'?'':r;show(r);if(PET)PET.react(r==='Помилка'?'dizzy':'happy',r==='Помилка'?'\uD83D\uDCAB':'\u2728',1100,r!=='Помилка')
+  }
+  else if(k==='±'){const m=ex.match(/(-?[\d.]+)$/);if(m){ex=ex.slice(0,m.index)+(m[1][0]==='-'?m[1].slice(1):'-'+m[1]);show(calc(ex))}}
+  else if(k==='%'){const m=ex.match(/([\d.]+)$/);if(m){ex=ex.slice(0,m.index)+(+m[1]/100);show(calc(ex))}}
+  else if(ops.includes(k)){if(!ex)return;if(ops.includes(ex.slice(-1)))ex=ex.slice(0,-1);ex+=k;show()}
+  else{ex+=k;const t=ex.replace(/[+−×÷.]$/,'');show(/[+−×÷]/.test(ex)?calc(t):ex)}
+}
+
+let dec=false,FS='f';
+function NL(){return dec?S.dn:S.notes}
+function open(id){
+  let o=id;
+  if(id==='decoy'){dec=true;FS='d';o='vault'}else if(id==='vault'){dec=false;FS='f'}
+  $('#'+o).classList.add('on');bump();
+  if(o==='vault'){$('#toapps').style.display=dec?'none':'';$('[data-vt="n"]').click();notes()}
+  if(o==='appsv'){$('#al').classList.remove('edit');$('#aed').classList.remove('on');$('#af').style.display='none';apps();tmFill()}
+  if(o==='sett')fill()}
+$$('[data-close]').forEach(b=>b.onclick=()=>b.closest('.ov').classList.remove('on'));
+$('#toapps').onclick=()=>{$('#vault').classList.remove('on');open('appsv')};
+
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function notes(){
+  $('#nl').innerHTML=NL().map((n,i)=>'<div class="card"><span>'+esc(n)+'</span><button class="btn g" data-dn="'+i+'">✕</button></div>').join('')||'<div style="color:var(--mut)">Нотаток ще немає</div>';
+  $$('[data-dn]').forEach(b=>b.onclick=()=>{NL().splice(+b.dataset.dn,1);save();notes()});
+}
+$('#addn').onclick=()=>{const v=$('#nt').value.trim();if(v){NL().unshift(v);$('#nt').value='';save();notes()}};
+
+const AE={'com.android.chrome':'🌐','com.google.android.youtube':'▶️','org.telegram.messenger':'✈️','com.android.settings':'⚙️'};
+function hue(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h}
+function appHtml(a,i){const e=a.e||AE[a.p]||(a.n[0]||'?').toUpperCase(),u=hue(a.n);
+  return '<button class="app'+(a.p===S.last?' last':'')+'" data-ra="'+i+'"><span class="x" data-da="'+i+'">✕</span><span class="ico" style="background:linear-gradient(145deg,hsl('+u+' 80% 62%),hsl('+((u+40)%360)+' 75% 45%))">'+esc(e)+'</span><span class="nm">'+esc(a.n)+'</span></button>'}
+function apps(){
+  $('#al').innerHTML=S.apps.map(appHtml).join('')+'<button class="app add" id="aadd"><span class="ico">＋</span><span class="nm">Додати</span></button>';
+  $('#aadd').onclick=()=>{const f=$('#af');f.style.display=f.style.display==='none'?'':'none'};
+  $$('[data-ra]').forEach(b=>b.onclick=()=>{if($('#al').classList.contains('edit'))return;launch(S.apps[+b.dataset.ra])});
+  $$('[data-da]').forEach(b=>b.onclick=e=>{e.stopPropagation();S.apps.splice(+b.dataset.da,1);save();apps()});
+}
+let pick=0,DB,URLS=[];
+function idb(){return new Promise((res,rej)=>{if(DB)return res(DB);const r=indexedDB.open('vault',2);r.onupgradeneeded=()=>{const db=r.result;['f','d'].forEach(n=>{if(!db.objectStoreNames.contains(n))db.createObjectStore(n,{keyPath:'id',autoIncrement:true})})};r.onsuccess=()=>{DB=r.result;res(DB)};r.onerror=()=>rej(r.error)})}
+async function fAll(){const d=await idb();return new Promise((res,rej)=>{const q=d.transaction(FS).objectStore(FS).getAll();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+async function fAdd(f){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction(FS,'readwrite');t.objectStore(FS).add({name:f.name,type:f.type||'',size:f.size,blob:f,t:Date.now()});t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function fDel(id){const d=await idb();return new Promise(res=>{const t=d.transaction(FS,'readwrite');t.objectStore(FS).delete(id);t.oncomplete=res})}
+async function files(){
+  URLS.forEach(u=>URL.revokeObjectURL(u));URLS=[];
+  let a=[];try{a=await fAll()}catch(e){$('#fl').textContent='Сховище недоступне';return}
+  a.sort((x,y)=>y.t-x.t);
+  $('#fl').innerHTML=a.map(f=>{let u='';if(f.type.startsWith('image/')){u=URL.createObjectURL(f.blob);URLS.push(u)}
+    return '<button class="tile" data-f="'+f.id+'"><span class="x" data-fd="'+f.id+'">✕</span>'+(u?'<img src="'+u+'">':'<i>📄</i>')+'<small>'+esc(f.name)+'</small></button>'}).join('')||'<div style="color:var(--mut)">Файлів ще немає</div>';
+  $$('[data-fd]').forEach(b=>b.onclick=async e=>{e.stopPropagation();await fDel(+b.dataset.fd);files()});
+  $$('[data-f]').forEach(b=>b.onclick=()=>showF(a.find(f=>f.id===+b.dataset.f)));
+}
+function showF(f){
+  const u=URL.createObjectURL(f.blob);URLS.push(u);const t=f.type;
+  $('#vt').textContent=f.name;
+  $('#vb').innerHTML=(t.startsWith('image/')?'<img src="'+u+'" style="max-width:100%">':t.startsWith('video/')?'<video src="'+u+'" controls style="max-width:100%"></video>':t.startsWith('audio/')?'<audio src="'+u+'" controls></audio>':'<p>'+esc(f.name)+' ('+Math.round(f.size/1024)+' КБ)</p>')+'<p><button class="btn" id="sv">Зберегти копію</button></p>';
+  $('#sv').onclick=()=>saveOut(f);
+  $('#viewer').classList.add('on');
+}
+$('#addf').onclick=()=>{pick=1;$('#fi').click()};
+$('#fi').onchange=async()=>{try{for(const f of $('#fi').files)await fAdd(f)}catch(e){}$('#fi').value='';pick=0;files()};
+window.addEventListener('focus',()=>setTimeout(()=>{pick=0},1500));
+$$('[data-vt]').forEach(b=>b.onclick=()=>{const f=b.dataset.vt==='f';$('#tnotes').style.display=f?'none':'';$('#tfiles').style.display=f?'':'none';$$('[data-vt]').forEach(x=>x.classList.toggle('a',x===b));if(f)files()});
+$$('[data-bk]').forEach(b=>b.onclick=async()=>{S.back=b.dataset.bk==='1';save();fill();
+  if(S.back&&native()){try{const r=await plug().canOverlay();if(!r.ok){await plug().askOverlay();$('#bkm').textContent='Увімкни для калькулятора «Показувати поверх інших програм» і повернись'}}catch(e){$('#bkm').textContent='Помилка: '+((e&&e.message)||'')}}});
+$$('[data-id]').forEach(b=>b.onclick=()=>{S.idle=+b.dataset.id;save();fill();bump()});
+$$('[data-lk]').forEach(b=>b.onclick=()=>{S.lkOn=b.dataset.lk==='1';if(!S.lkOn){S.fails=0;S.until=0}save();fill()});
+$$('[data-ln]').forEach(b=>b.onclick=()=>{S.lkN=+b.dataset.ln;save();fill()});
+$$('[data-lm]').forEach(b=>b.onclick=()=>{S.lkMin=+b.dataset.lm;save();fill()});
+let it;function anyOpen(){return !!document.querySelector('.ov.on:not(#phys)')}
+function bump(){clearTimeout(it);if(S.idle&&anyOpen())it=setTimeout(()=>{if(anyOpen())lock()},S.idle*1000)}
+['click','touchstart','keydown','input'].forEach(e=>document.addEventListener(e,bump,true));
+const FM=[
+ {n:'Швидкість',f:'v = s / t',t:'q',r:['v','Швидкість','м/с'],x:['s','Шлях','м'],y:['t','Час','с']},
+ {n:'Прискорення',f:'a = v / t',t:'q',r:['a','Прискорення','м/с²'],x:['v','Зміна швидкості','м/с'],y:['t','Час','с']},
+ {n:'Сила',f:'F = m · a',t:'p',r:['F','Сила','Н'],x:['m','Маса','кг'],y:['a','Прискорення','м/с²']},
+ {n:'Вага',f:'P = m · g',t:'p',r:['P','Вага','Н'],x:['m','Маса','кг'],y:['g','Прискорення вільного падіння','м/с²',9.81]},
+ {n:'Густина (маса)',f:'ρ = m / V',t:'q',r:['ρ','Густина','кг/м³'],x:['m','Маса','кг'],y:['V','Об’єм','м³']},
+ {n:'Тиск',f:'p = F / S',t:'q',r:['p','Тиск','Па'],x:['F','Сила','Н'],y:['S','Площа','м²']},
+ {n:'Робота',f:'A = F · s',t:'p',r:['A','Робота','Дж'],x:['F','Сила','Н'],y:['s','Шлях','м']},
+ {n:'Потужність',f:'P = A / t',t:'q',r:['P','Потужність','Вт'],x:['A','Робота','Дж'],y:['t','Час','с']},
+ {n:'Імпульс',f:'p = m · v',t:'p',r:['p','Імпульс','кг·м/с'],x:['m','Маса','кг'],y:['v','Швидкість','м/с']},
+ {n:'Кінетична енергія',f:'E = m · v² / 2',t:'k',r:['E','Енергія','Дж'],x:['m','Маса','кг'],y:['v','Швидкість','м/с']},
+ {n:'Закон Ома',f:'U = I · R',t:'p',r:['U','Напруга','В'],x:['I','Струм','А'],y:['R','Опір','Ом']}
+];
+function solve(F,V){
+  const r=F.r[0],x=F.x[0],y=F.y[0],miss=[r,x,y].filter(k=>V[k]==null);
+  if(miss.length!==1)return null;
+  const m=miss[0],R=V[r],X=V[x],Y=V[y];let v;
+  if(F.t==='p')v=m===r?X*Y:m===x?R/Y:R/X;
+  else if(F.t==='q')v=m===r?X/Y:m===x?R*Y:X/R;
+  else v=m===r?X*Y*Y/2:m===x?2*R/(Y*Y):Math.sqrt(2*R/X);
+  return [m,v];
+}
+function fRender(){
+  const F=FM[+$('#fs').value];
+  $('#ff').textContent=F.f+' — залиш порожнім те, що шукаєш';
+  $('#fv').innerHTML=[F.r,F.x,F.y].map(a=>'<label>'+esc(a[1])+' ('+a[0]+'), '+esc(a[2])+'</label><input data-k="'+a[0]+'" inputmode="decimal" value="'+(a[3]||'')+'">').join('');
+  $('#fr').textContent='';
+}
+$('#fs').innerHTML=FM.map((f,i)=>'<option value="'+i+'">'+f.n+'</option>').join('');
+$('#fs').onchange=fRender;
+$('#fb').onclick=()=>open('phys');
+$('#fx').onclick=fRender;
+$('#fc').onclick=()=>{
+  const F=FM[+$('#fs').value],V={};let bad=0;
+  $$('#fv input').forEach(i=>{const s=i.value.trim().replace(',','.');if(s==='')V[i.dataset.k]=null;else{const n=Number(s);if(isNaN(n))bad=1;V[i.dataset.k]=n}});
+  if(bad){$('#fr').textContent='Введіть тільки числа';return}
+  const s=solve(F,V);
+  if(!s){$('#fr').textContent='Залиште порожнім рівно одне поле';return}
+  if(!isFinite(s[1])){$('#fr').textContent='Неможливо порахувати (ділення на нуль)';return}
+  const val=+s[1].toPrecision(8),a=[F.r,F.x,F.y].find(q=>q[0]===s[0]);
+  $$('#fv input').forEach(i=>{if(i.dataset.k===s[0])i.value=val});
+  $('#fr').textContent=a[1]+' = '+val+' '+a[2];
+};
+fRender();
+const QU={
+ v:['Швидкість','v',[['м/с',1],['км/год',1/3.6]]],
+ s:['Шлях','s',[['м',1],['км',1000],['см',0.01]]],
+ t:['Час','t',[['с',1],['хв',60],['год',3600]]],
+ a:['Прискорення','a',[['м/с²',1]]],
+ m:['Маса','m',[['кг',1],['г',0.001],['т',1000]]],
+ F:['Сила','F',[['Н',1],['кН',1000]]],
+ W:['Вага','P',[['Н',1],['кН',1000]]],
+ g:['Вільне падіння','g',[['м/с²',1]]],
+ rho:['Густина','ρ',[['кг/м³',1],['г/см³',1000]]],
+ V:['Об’єм','V',[['м³',1],['л',0.001],['см³',1e-6]]],
+ p:['Тиск','p',[['Па',1],['кПа',1000]]],
+ S:['Площа','S',[['м²',1],['см²',1e-4]]],
+ A:['Робота','A',[['Дж',1],['кДж',1000]]],
+ N:['Потужність','N',[['Вт',1],['кВт',1000]]],
+ J:['Імпульс','J',[['кг·м/с',1]]],
+ E:['Енергія','E',[['Дж',1],['кДж',1000]]],
+ U:['Напруга','U',[['В',1]]],
+ I:['Струм','I',[['А',1],['мА',0.001]]],
+ R:['Опір','R',[['Ом',1],['кОм',1000]]]
+};
+const FP=[{t:'q',r:'v',x:'s',y:'t'},{t:'q',r:'a',x:'v',y:'t'},{t:'p',r:'F',x:'m',y:'a'},{t:'p',r:'W',x:'m',y:'g'},{t:'q',r:'rho',x:'m',y:'V'},{t:'q',r:'p',x:'F',y:'S'},{t:'p',r:'A',x:'F',y:'s'},{t:'q',r:'N',x:'A',y:'t'},{t:'p',r:'J',x:'m',y:'v'},{t:'k',r:'E',x:'m',y:'v'},{t:'p',r:'U',x:'I',y:'R'}];
+const TP={p:{r:'X · Y',x:'R / Y',y:'R / X'},q:{r:'X / Y',x:'R · Y',y:'X / R'},k:{r:'X · Y² / 2',x:'2 · R / Y²',y:'√(2 · R / X)'}};
+const fm=n=>String(+n.toPrecision(6)).replace('.',','),sym=k=>QU[k][1],un=k=>QU[k][2][0][0];
+function sv(F,m,V){const R=V[F.r],X=V[F.x],Y=V[F.y];
+  if(F.t==='p')return m===F.r?X*Y:m===F.x?R/Y:R/X;
+  if(F.t==='q')return m===F.r?X/Y:m===F.x?R*Y:X/R;
+  return m===F.r?X*Y*Y/2:m===F.x?2*R/(Y*Y):Math.sqrt(2*R/X)}
+function solveP(G,t){
+  const V=Object.assign({},G),steps=[];let auto=false;
+  if(t!=='g'&&V.g==null){V.g=9.81;auto=true}
+  let prog=true;
+  while(prog&&V[t]==null){prog=false;
+    for(const F of FP){const ks=[F.r,F.x,F.y],miss=ks.filter(k=>V[k]==null);
+      if(miss.length===1){const m=miss[0],v=sv(F,m,V);
+        if(!isFinite(v))return {err:'Неможливо порахувати: ділення на нуль або від’ємне число під коренем.'};
+        V[m]=v;steps.push({F,m,ins:ks.filter(k=>k!==m)});prog=true;break}}}
+  if(V[t]==null)return {err:'Не вистачає даних: з цих величин знайти «'+QU[t][0]+'» не вдається. Додайте ще дано.'};
+  const need=new Set([t]),used=[];
+  for(let i=steps.length-1;i>=0;i--){const s=steps[i];if(need.has(s.m)){used.unshift(s);s.ins.forEach(k=>need.add(k))}}
+  return {V,used,auto:auto&&used.some(s=>s.ins.includes('g'))};
+}
+function qOpts(){return Object.keys(QU).map(k=>'<option value="'+k+'">'+QU[k][0]+' ('+QU[k][1]+')</option>').join('')}
+function uOpts(k){return QU[k][2].map((u,i)=>'<option value="'+i+'">'+u[0]+'</option>').join('')}
+function addG(){
+  const d=document.createElement('div');d.className='pr';
+  d.innerHTML='<select class="pq">'+qOpts()+'</select><input class="pv" inputmode="decimal" placeholder="число"><select class="pu"></select><button class="btn g">✕</button>';
+  const q=d.querySelector('.pq'),u=d.querySelector('.pu');u.innerHTML=uOpts(q.value);
+  q.onchange=()=>{u.innerHTML=uOpts(q.value)};
+  d.querySelector('button').onclick=()=>d.remove();
+  $('#pg').appendChild(d);
+}
+function pReset(){$('#pg').innerHTML='';addG();addG();$('#po').textContent=''}
+$('#pt').innerHTML=qOpts();
+$('#pt').onchange=()=>{$('#ptu').innerHTML=uOpts($('#pt').value)};
+$('#ptu').innerHTML=uOpts($('#pt').value);
+$('#pa').onclick=addG;$('#px').onclick=pReset;pReset();
+$('#ps').onclick=()=>{
+  const G={},L=['Дано:'];let bad='';
+  $$('#pg .pr').forEach(d=>{const k=d.querySelector('.pq').value,s=d.querySelector('.pv').value.trim().replace(',','.'),ui=+d.querySelector('.pu').value;
+    if(s==='')return;const n=Number(s);if(isNaN(n)){bad='Введіть тільки числа';return}
+    const f=QU[k][2][ui][1],si=n*f;G[k]=si;
+    L.push(sym(k)+' = '+fm(n)+' '+QU[k][2][ui][0]+(f!==1?' = '+fm(si)+' '+un(k):''))});
+  if(bad){$('#po').textContent=bad;return}
+  if(!Object.keys(G).length){$('#po').textContent='Додайте хоча б одну величину в «Дано».';return}
+  const t=$('#pt').value,ti=+$('#ptu').value,tf=QU[t][2][ti][1],tn=QU[t][2][ti][0];
+  const r=solveP(G,t);
+  if(r.err){$('#po').textContent=r.err;return}
+  if(r.auto)L.push('g = 9,81 м/с² (стала)');
+  L.push('','Знайти: '+sym(t)+' ('+QU[t][0].toLowerCase()+')','','Розв’язання:');
+  if(!r.used.length)L.push('Величина вже є в «Дано».');
+  r.used.forEach((s,i)=>{const T=TP[s.F.t],pos=s.m===s.F.r?'r':s.m===s.F.x?'x':'y',M={R:s.F.r,X:s.F.x,Y:s.F.y};
+    L.push((i+1)+') '+sym(s.m)+' = '+T[pos].replace(/[RXY]/g,c=>sym(M[c]))+' = '+T[pos].replace(/[RXY]/g,c=>fm(r.V[M[c]]))+' = '+fm(r.V[s.m])+' '+un(s.m))});
+  L.push('','Відповідь: '+sym(t)+' = '+fm(r.V[t]/tf)+' '+tn);
+  $('#po').textContent=L.join('\n');
+};
+$('#aed').onclick=()=>{$('#al').classList.toggle('edit');$('#aed').classList.toggle('on')};
+function tmFill(){$$('[data-tm]').forEach(b=>b.classList.toggle('a',+b.dataset.tm===S.timer));
+  $('#tmc').value=[0,60,300,900,1800,3600].includes(S.timer)?'':Math.round(S.timer/60);ovCheck();acCheck()}
+$$('[data-tm]').forEach(b=>b.onclick=()=>{S.timer=+b.dataset.tm;save();tmFill()});
+$('#tmc').onchange=()=>{const n=Math.round(Number($('#tmc').value.replace(',','.')));if(n>0&&n<=1440){S.timer=n*60;save()}tmFill()};
+const TE=new TextEncoder(),TD=new TextDecoder();
+async function ckey(pw,salt){const m=await crypto.subtle.importKey('raw',TE.encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+function b64(u){let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)}
+function ub64(s){const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+async function seal(t,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await ckey(pw,salt),TE.encode(t)));
+  return JSON.stringify({calc:1,s:b64(salt),i:b64(iv),c:b64(ct)})}
+async function unseal(txt,pw){const o=JSON.parse(txt);return TD.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(o.i)},await ckey(pw,ub64(o.s)),ub64(o.c)))}
+function b64f(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]||'');r.onerror=()=>rej(r.error);r.readAsDataURL(blob)})}
+async function fPut(rec){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction(FS,'readwrite');t.objectStore(FS).add(rec);t.oncomplete=res;t.onerror=()=>rej(t.error)})}
+async function pack(withFiles){
+  const out={v:1,S:S,files:{f:[],d:[]}},old=FS;
+  if(withFiles){try{for(const st of ['f','d']){FS=st;for(const f of await fAll())out.files[st].push({name:f.name,type:f.type,size:f.size,t:f.t,data:await b64f(f.blob)})}}finally{FS=old}}
+  return JSON.stringify(out)}
+async function saveOut(f){
+  try{
+    if(native()){const r=await pl('Launch').saveFile({name:f.name,data:await b64f(f.blob),b64:true,mime:f.type||'application/octet-stream'});$('#vt').textContent='Збережено: '+(r.path||f.name)}
+    else{const a=document.createElement('a');a.href=URL.createObjectURL(f.blob);a.download=f.name;a.click()}
+  }catch(e){$('#vt').textContent='Помилка: '+((e&&e.message)||e)}
+}
+const bm=t=>{$('#bm').textContent=t};
+$$('[data-bf]').forEach(b=>b.onclick=()=>{S.bf=b.dataset.bf==='1';save();fill()});
+$('#bs').onclick=async()=>{
+  const pw=$('#bp').value;if(pw.length<4){bm('Пароль має бути від 4 символів');return}
+  bm('Готую копію…');
+  try{
+    const txt=await seal(await pack(!!S.bf),pw),name='calc-backup-'+new Date().toISOString().slice(0,10)+'.json';
+    if(native()){const r=await pl('Launch').saveFile({name,data:txt,mime:'application/json'});bm('Збережено: '+(r.path||name)+'. Збережи цей файл і пароль окремо.')}
+    else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=name;a.click();bm('Копію створено: '+name)}
+  }catch(e){bm('Помилка: '+((e&&e.message)||e)+(S.bf?' (якщо файлів дуже багато, спробуй «Тільки нотатки й налаштування»)':''))}
+};
+$('#br').onclick=()=>{if($('#bp').value.length<4){bm('Спершу введи пароль копії');return}pick=1;$('#bi').click()};
+$('#bi').onchange=async()=>{
+  const f=$('#bi').files[0];$('#bi').value='';pick=0;if(!f)return;
+  bm('Відновлюю…');
+  let o;
+  try{o=JSON.parse(await unseal(await f.text(),$('#bp').value))}catch(e){bm('Не вдалося розшифрувати: неправильний пароль або це не файл копії');return}
+  try{
+    S=Object.assign({},D,o.S);save();theme();applyHide();
+    let n=0;const old=FS;
+    try{for(const st of ['f','d']){FS=st;const have=new Set((await fAll()).map(x=>x.name+'|'+x.size+'|'+x.t));
+      for(const x of (o.files&&o.files[st])||[]){if(have.has(x.name+'|'+x.size+'|'+x.t))continue;
+        await fPut({name:x.name,type:x.type,size:x.size,t:x.t,blob:new File([ub64(x.data)],x.name,{type:x.type})});n++}}}finally{FS=old}
+    fill();bm('Відновлено. Нотатки, програми й налаштування замінено, додано файлів: '+n+'. Коди могли змінитись на ті, що були в копії.')
+  }catch(e){bm('Помилка під час відновлення: '+((e&&e.message)||e))}
+};
+async function acCheck(){
+  $$('[data-ac]').forEach(b=>b.classList.toggle('a',(b.dataset.ac==='1')===!!S.ac));
+  const n=$('#acn');n.style.display='none';
+  if(!native()||!S.ac)return;
+  try{const r=await pl('Launch').clickStatus();if(!(r.overlay&&r.access))n.style.display=''}catch(e){}
+}
+$$('[data-ac]').forEach(b=>b.onclick=()=>{S.ac=b.dataset.ac==='1';save();acCheck()});
+$('#acp').onclick=()=>{try{pl('Launch').askOverlay()}catch(e){}};
+$('#acs').onclick=()=>{try{pl('Launch').openAccess()}catch(e){}};
+async function ovCheck(){const n=$('#ovn');n.style.display='none';if(!native()||!(S.timer>0||S.back||S.pa))return;try{if(!(await plug().canOverlay()).ok)n.style.display=''}catch(e){}}
+$('#ovb').onclick=()=>{try{plug().askOverlay()}catch(e){}};
+window.addEventListener('focus',()=>{if($('#appsv').classList.contains('on')){ovCheck();acCheck()}});
+const PET_SP={"a": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACNUlEQVR42u2VTW7UUBCEv2obCaQIIg7ASVixisgV2EfAZZAAiQNwAcTPCThJbhBWLMZdLPrZYyeMxwwrJN5oJM+899xV1dXd8H/9Y0trmz9eXjiiBxkPCRFIQZJ10/WGzmAbSyDBkCgECNsgIYFdVx6++3Iwbr+KVlEBLAhBV0HkmOjIxgIrGjvjvqv9NIqABoYQcq4q1K/r14C4/bRKGUEYUqAI7L3U9l45q8DEqFAap08HJI15KWzj6hQkJmZ/miRu35Xq9gjGxz20DshjsJnZJHKUjH0QZWWWPQewEcZ7/coGpwIabMLFsgKbOc3ya0tHNAe1/UVqJtTgv/GQumUxPPn4fXq+fvF0KtNsvtGxswZb2wHdXF3U8Yi9ibuAPMzKzdGSJnUOEwQP4ubVc8tVLMY8+vBNhxXq+9ZDxorxHaYLQDLOux3td2dzaBXaddgmCHyL7AKQ+pheLJUdj5aGVVe8odVq3FaRbr1pvhaWd7oZAnKXOOuruUc8Cz5VzhivteKxrlpakPY409gDOWQZ/Bbh9dHx+tIoUAi1ETCvLmfOwNRI0dR3ZiqrGRogk7P3X6XT+pBLw0w8sRRqkk1ey6xGNHZQCYVb/2ptY0yX1lVYBeShJI3ocPuEOnIYamTkrNY1psPLtj6lwcvzp0z75eS/NAJ1wdnbzzp28frqGY/7B7aC+31w782nTbFiK6D0UHPV3sRi+DkwdoPdliG2adovEFGm9TYO5+egQeRuR/xBmF+ndCHc1LbK4gAAAABJRU5ErkJggg==", "c": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACY0lEQVR42u2WPXIUQQyFv6cxpigoSCDlFIQcgLIJOAAHMDjjBPYFyOAEHICE8gU4CREh/uHP3tEjaPXuems9XpxRRSc70yN1Pz1JTwv/1z+2NPXxdO+ZPQwIsEES6UQxlIWR3Y4J4UxAGAiMASTCJk3tmPuPjqTD9XfGJNwIJLXfrUARRAwgkED1oBAgFEOzGYTVQDabds4wDIQGOPDVV07SJzVAEhgU9Y7BxjJ2p9rFt5GbXSBUvDTQ7ahJDqY+zuOwiQjsRrl69I0m0tlSai+KQGBB0lKlvnkNomlA2RgQInutSKiFTCdFBP1FBrtYaviJ8lcHMwFqa7rkDarinBdlrcx5Wu0FAy5g3Vah/oRxY7l1yA0AWdia+z7+8Hn+6cvLp0tpbZfKC8Brbb2ouY0Y+ra344gqWgkNw7yGpplUMXip8tabDnC6v+uTVzsoRBoevP+ktYA8CPf2VdXCErU90tVOhJV0XmG76NaACJyJVvwuASoJREWtSgSnYm41QXlOS207t2RgzFIJXd1lmTOcY0Ou1W5QddTyE5CuwKvLeheusNt9mj4lZOLMVTzTo+P49Y57+ubp6RGqjwoW8teFtLqotT9QomgbZXL34RPp8PDvdShoaetMuGsRkOMSAHobV3JDl2YcdgNvSs9uKIxff5zq7Phcd25vQzBPRQARrlIurUoX6MTjWI3pSmmxlrO2f3Bws2nf1/jmhX/+nkGI7VsD228/buR3tv/cbWwk994dbeQT1xmc7O/6+68LHH2cbHRuSUGfcbGxz7WWOWaT/2x1MOa4OSC1vyKz84uNff4AY9ZEcTkE4uQAAAAASUVORK5CYII=", "d": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACSklEQVR42u2WO24UYRCEv+oZAgLsG3ASDgDYGSkHQNgRZwEkco5g5AtwEkIkJGyDCKzpIvh7Hrvyjtd2hMRI+9A8/q6uqq5/4P/xjx1au3h58sJGSAFAGCzINCGwhCQ8DEhtKdcvBqKesbGNgEQcfvyys26/BsiD6foOFA26ExDRAQrkbED7HuwGJhPZoMBWe06JHGQmWueAWKdPGOFq2cWUDDTuwG4fgDQStC8Tcmmg1pNUTd0TEIKQURWPSePq04aoJTSeExBNylG6Oi8Bsc7QqmTqutknxYKiUY8FoSbP0pFagC5EjS8XAw8AZCdyRzIXdRblMngup1Fieyp+E+Xp4X6ADFwlpBN1TZann79O17+9frZEDpPX2Hlvs9YdGLp489yhwIIr1wrSHsGhhVnWb3WIi7cvPQ6GDYefznUjIEUP4Xk0vVlmg5XxqMmaTeyd96aFZKSuKrh8tnPKXCHYHGG1cV3tuhhMu5n9ForGCBn/byu4VS5rglqyxjiuePIJAtk4PXVpN2VjzCiVxdVGXZOBisE0OAkbbSHSqqlPjqwukDVPjhcFFruERlQWlmsIXVK2PcdOMBx8ONOdg1HV7ZQh1dlGuHkhQXnHSqZ8NHjIYnQojfIBwegkB4io7tQ3eEMyz3EzKlLLKC2yqmRzJj+//1D/6DG/hgfs9kv5fp8eORGkOdjarb1jocvTY49Fnrw/26tW7PuOoiGbGbcCcLWroQZD4vLk2H/evbo1rPp9X5yurwfooOtiP1rbPkMOtA3Y0O3xyF8fODTuB2BQZQAAAABJRU5ErkJggg==", "sleepy": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAAB+ElEQVR42u2VsYoUYRCEv+p/xEg0NfFJTA1kQ8HIWJAz9T0MRO4BzEwEETX3GYzFUDBQEfHupsug/5ndvdtbRhOT7WTgn57+q6uqe+AQhzjEIf5vaN/L70d3LYQNSOsPDM7EEmh9hsASQtRHRtJ81TieceP43d47h71wLdQaITDC6SodoBaV4sQWisIUE3CDVDmjjYDW2r8x9PXhHbcYaENgAkmdIFXXFBPY2F4Xkzp9G9XdyQKcI6cyJ2Ny8/i9FjM0RCNagZlRd4kEZESdRSAbnICQhG0U9XSJB6omaMEwJkMMk8LLAGm40juurk3vMrMOOzMTI3a3WPda5ZaxLDosg0W0hiag+yT79mhlSV382DCjL9c7egkX8MzckxvVhA1p0kmoMTq5/vyNLjAUMrSAaJDFQIRm/W+9+DAX//zgdocahIQ9bsHemduNDcIBouH0PAQXACkEXfvzZtwsvD2F7vbRFpG7cjVz7XltCHBc4qEU+HQsQ/bxnbCnuzFdMxahXnrySIELRFKS0CfTHUl5bH3mPow+J/NOb/nJPf/8fbLBUDEXExGdxWnPSJATCPpewrijnadPZfYErj17Lf3tpp4N/3hlORAjb7980v2XHxf9Bn4crRzRGFpw9emrRXfFkqRfp2e1awxLwdgm04zjyBCx+F/2B8PUAiZAQuBkAAAAAElFTkSuQmCC", "b": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAAB8klEQVR42u2VMYsVQRCEv+pZMRJNTfwlpgbyQsHIWJAz9X8YiNwPMDMRDlFzf4OxGAoGp4h477bLoGf3PU9dFxOT18kusz0z1VXVvXCIQxziEP83tPTx89FtC2ED0m6DwZlYAu3WEFhCiNpkJM1XjeM5145fL945LMK1UGuEwAin6+gAtagUJ7ZQFKaYgBukyhltBLTW/o2hT/dvucVAGwITSOoEqaqmmMDG9u4wqdO3d7o7WYBzZCtzNibXj99oNUNDNKIVmBl1l0hARtRaBLLBCQhJ2EZRT5d4oCqCFgxjMsQwKbwOkIZLveKq2vQqM2uxMzMxYneLda9VbhnLosMyWERraAK6JNnpg40ldfFjz4zF941nb+dNH+7dnL1UTi7gmbmQG1WEDWnSSagxOrn69OWMI+YXGTWhYdhRr2UDlr+imMDLud3YIBzVLMZzE/wimULQtb9oxv1KL9zS7SP4S65mrj2PDQGOP3goBd6OZcjevhP2dDemq8ci1I+ePFLgApGUJPTOdEdSHtutuTeju8yLbe9Hd/z1+9keQ8VcTER0Fqc5I0FOIOhzCeOO9icLZPn9ypOT3zpCa8b56cON5UCMvPr4Xnefv1v1G/hytHFEY2jB5ccvVt0Va5K+bc9r1hjWgrFNphnHkSFi9b/sByTu/CfQO6oMAAAAAElFTkSuQmCC", "blink": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACMklEQVR42u2VzY0TURCEv+oZJJBWsCIAIuHEaaVNgfsKkQwSIBEACSB+IiCSzQBOHPy6OPSb8XgXjwffkHiWD/b76erq6mr4v/6xpbXNn6+uHDGCjFtCBFKQZN10vTAYbGMJJGiJQoCwDRIS2HXl8bsvR+OOq2gVFcCCEAwVRI45HdlYYEXPzngcaj+NIqCDIYScqwyN6/x1IO4/rWJGEIYUKAJ7T7W9Z84qMDExlMbp8wFJU10K27QGBYmJxZ8mibt3pbo9gfFpDa0D8hRsITaJnChjH0RZlWWfA9gI4z1/JYNzATWbcGVZgc0yzdJrL0d0BfX9g9LMqMEnNLQKV4M2tWl6oZ1TjFvb2/7HzVUdj8IZwwBD4Kysnn38Pp+9ffl8fqC0rpmdY2cjIBtktmoQgzFPPnzT8ZKNY/eQKWvfe3i5LOO872h/Oputd+gwYJtgn+wfAWmM+WGp5HiyNay64g1Wq2lblXT3pqMacroEAeQucdZXXR9z4AOMni1BdCue+qqXBWmPM43dyJYl8DsJr4+O19dGgUKoj4BldzlzAaZGimbfWbCsErQBMrl4/1U6z4dcHGbiOUuhTtmstcwyoslBJRTu/tVtYyqX1llYBeRWlEYMuH9CA9lajYxczAxN5fChrc9l8OH5c6b94eS/NgINwcXbzzp18fbmBU/HR7aCh2Pw4M2nTbFiK6B0q7lqb8qi/WpMbrDbMsQ2TfsDRJRovS2Hy0tQE7nbEX8R5jcv+iEwArXv1AAAAABJRU5ErkJggg==", "happy": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACOElEQVR42u2VTW7UQBCFv1c2EkgBIg7ASVixipQrsI8Ql0HiRxyAC6AAJ+AkuQGsWIzrsahujyfReEx2SPRoZM10t+u9V6+q4P/6x5bWNn+9vnDECDKeEiKQgiTrpusNg8E2lkCCKVEIELZBQgK7rjx5//Vo3HEVraICWBCCoYLIMdORjQVWNHbG41D7aRQBDQwh5FxVaFzXrwFx+2mVMoIwpEAR2Hup7b1yVoGJrlAap+8PSOp5KWx9DQoSE4s/TRK370p1u4PxaQ+tA3IPtjCbRHbJ2AdRVmbZcwAbYbzXr2xwX0CTTbhYVmCzpFl+bemI5qC2f5CaGTX4hIdW4Wq4WwzPP/+4U6bphXfWzpom48ay/3l1UcejcMYwwBA4cw5w8+rF/OwvKK9rVufY2QjICTKnKhCDMU8/fddxQOPYekhjHGLVjTLOXgAn1sKMtgmK7OOP+7504CGNMV+Qyo4nS8OqK97QatW3VaQ74WMecroMAeQucdZXzR9zYB/S7uKI1op7XbW0IO1xprEncsoy+C3C66PjzaVRoBBqI2BZXc5cgKmRornvLFRWGdoAmZx9+HY0wSf6kEvDTDyzFGqSda85sxpR76ASCjfLtLbR06V1FVYBeSpJIwbcPqGBnKYaGbmYGerp8GFbn9Pgw/P3mfaHk//SCDQEZ++uT9bUzdVLno2PbAUPx+DB2y+bYsVWQOmp5qq9icX0eyIb492WIbZp2h8gokzrbRzOz0GTyN2O+IswfwAkCihAcW2IwAAAAABJRU5ErkJggg==", "angry": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACO0lEQVR42u2VzW0UURCEv+oZJJAssAjAkXDiZMkpcLcQySABEgE4AQQmAkfiDODEYaeLQ7+ZnfHi2WFvSLzVHnbfT1dXV1fD//WPLa1t/nx76YgeZDwkRCAFSdZN1wudwTaWQIIhUQgQtkFCAruuPP/47dG4/SpaRQWwIARdBZFjSkc2FljRsjPuu9pPowhoYAgh5ypD/Tp/DYjbT6uYEYQhBYrA3lNt75mzCkyMDKVx+nRA0liXwjauTkFiYvanSeLhXaluj2B8XEPrgDwGm4lNIkfK2AdRVmXZ5wA2wnjPX8ngVECDTbiyrMBmnmbptZUjmoLa/qI0E2rwEQ2twlW3bIaLmzsubu4O2jQ9087KeZlG48a2/3F9WcejcEbXQRc4cxEE4P7Nq+mB0romdv50bnw2B8gcqkEMxrz4/F2Pl6zvm4eMWS/TngcAsIzz0NEenoMCgypR2wTLZA8AqY/pYankeLQ1rLriDVarcVuVdPOmRzXkdAkCyF3irK+aPqbAC4yeLEE0Kx77qpUFaY8zjT2QQ5bAHyS8PjreXRkFCqE2Aubd5cwZmBopmnxnxrJK0AbI5OzTrXSaD7k4zMRTlkKNsklrmWVEo4NKKNz8q9nGWC6ts7AKyENRGtHh9gl15DDUyMjZzNBYDi9tfSqDl+dPmfbLyX9lBOqCsw9fdezi/fVrXvbPbAVP++DJ+y+bYsVWQOmh5qq9KYvh18DoBrstQ2zTtF8gokTrbTmcn4MGkbsd8RdhfgNqLidI/QT1ugAAAABJRU5ErkJggg==", "sad": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACPElEQVR42u2Vy20UYRCEv+oZJJAssAiASDhxsuQUuFuIZJAAiQCcAOIRgSNxBnDisNPFof95Ge/s4BsS/2oPu/+jq6urq+H/+seWtjZ/vrlwRA8yHhIikIIk66brhc5gG0sgwZAoBAjbICGBXVeefvh6NG6/iVZRASwIQVdB5JjSkY0FVrTsjPuu9tMoAhoYQsi5yVC/zV8D4vbTKmYEYUiBIrBnqu2ZOavAxMhQGqcfDkga61LYxtUpSEws/jRJ3L0r1e0RjE9raBuQx2ALsUnkSBlzEGVVljkHsBHGM38lg4cCGmzClWUFNss0S6+tHNEU1PZXpZlQg09oaBOuuj+b4cX1DS+ub1Ztml5o58i5iXFrf9v/uLqo41E4o+ugC5w5BQG4ff1y9UBpXRM7S1DL8xGQA2QO1SAGY559+q7jJev75iFj1nOQJZCpGjLO+x3t7vkcWod2HbYJ5mTvBaQ+poelkuPJ1rDqindYrcZtVdLNm45qyOkSBJCHxFlfNX1MgVcYPVmCaFY89lUrC9KMM409kEOWwO8kvD063l4aBQqhNgKW3eXMBZgaKZp8Z8GyStAGyOTs4zfpYT7k4jATT1kKNcomrWWWEY0OKqFw869mG2O5tM3CJiAPRWlEh9sn1JHDUCMjFzNDYzm8tvWpDF6ff8i0X0/+SyNQF5y9/6JTF2+vXvG8f2IreNwHj9593hUr9gJKDzVX7V1ZDL8GRjc47Bliu6b9ChElWu/L4fwcNIg8HIi/CPMbai4nSAkyjp0AAAAASUVORK5CYII=", "shock": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACN0lEQVR42u2VzY0TQRCFv1czSCCtYEUARMKJ04pNgfsKSAYJkAiABBA/ERDJZrCcOLjrceju8YyFx4M5IdGWpbG7e+rVq1ev4P/6x5bWNn+8vHLECDIuCRFIQZL1pusbBoNtLIEEJVEIELZBQgK7Xnn47svRuOMqWkUNYEEIhhpEjikd2VhgRcvOeBzqfhpFQANDCDlXGRrX+WtA3H5alRlBGFKgCOw91faeOauCic5QGqfPByT1ulRsfQ0KEhOzP00Sh3eleruD8WkNrQNyDzYTm0R2ytgHUdbKss8BbITxnr8qg3MBFZtwzbIGNvM0q15bOaIpqO0vSjOhBv+NhjQsm+HJx+/T8+2Lp1ObZtONTp012NoO6O7mqh6P2It4CMjjWbkpWtLEzvEEwUXcvXpuuTaLMY8+fNNxhsaxeUjvmPUglnGecrTmAqV16DBgmyDwQbILQBpjerFU5TgH1Kk/QFSveGm1vz2rvq2adPOm+VpI3ukmCMhd4qxfzTXiWfCpc3q8ZsW9r1pZkPYEprELWbIK/KAC66Pj9bVRoBBqI2DeXc6cgakjRZPvzFhWEzRAJhfvv0rn+ZArh5l4ylKoUTZpLbMaUXdQCYWbfzXb6OXSOgurgFwqpREDbp/QQJZSR0bOel29HF7a+lQGL8+fM+2Xk//aCDQEF28/69TF25tnPB4f2Aruj8G9N582xYqtgNKlzlV7UxblZ6G7wW7LENs07ReIqKL1thwuL0FF5G5H/EGYX/siIdy0pvL1AAAAAElFTkSuQmCC", "dizzy": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACPklEQVR42u2VQW4TQRBF368eJJACRByAk7BiFZErsI9QLoMESByAC6AAJ+AkuQFZsXDXZ9Hd9kwST4x3SLRljezunvr/168q+L/+saW1zZt3Z46YQMY1IQIpSLLddHtDMdjGEkhQE4UAYRskJLDblWcfv+2NO62iVbQAFoSgtCBybOnIxgIrOjvjqbT9NIqADoYQcq4qNK3r14G4/7SaMoIwpEAR2Dup7Z1yVgMTQ6E0Th8PSBp5adjGKgoSE7M/TRK370rt9gDjhz20Dsgj2MxsEjkkYxdE2TLLjgPYCOOdfs0GxwKqNuHGsgU2c5rNrz0d0R3U9xep2aIGP+ChVbgqy2J4+eXn4jnKND3zztpZ02U8sOx/XZy149FwRilQAmcuAl2/fbV4QfO6tursOxsBWSGztgIxGPP88w/tV2ia0FTQVHqqfCfAnLXlbtj7wczPZu0VWgoUEVMhIvYrdHP5xii6L+4y3rt8aKsd29qa3zZPP17dr5DTzRBAbhJn+6r7QyO4l2hG9Yveikdd9bQg7XCmsStZsxn8Fun10XF53hQLoT4C5tXlzBmYNlK07Tv9TGeigTWTk0/fpeP6kJuGmXjLUqhLplHqma0RjQ4qoXDvX71t9CyNbB3Vh1ybpBEF90+okLW2kZGzmaGRDi/b+jYNXp4/ZtovJ/+5EagEJx+u9NDF64vXvJie2AoeT8Gj918PihWHAkrXNlftg1jU35XsjDeHVuuD036BiGZaH8bh9BRURW42xF+E+QM6+DBoTzMpQgAAAABJRU5ErkJggg==", "love": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACPElEQVR42u2VXYoUUQyFv5NbgsLgDC7FJfg0MAsZxM0IKrgN8WcZLmJ2MOKDD105PuRWddW0XdP2m2A1TdF9k5uTk5ME/j//2KOtwx+vrx0xgIzHhAikIMnydN3QDLaxBBKMiUKAsA0SEtjl8vz9l6Nxh020igpgQQhaBZFjTkc2FljRszMeWp2nUQR0MISQc5OhYZu/DsT9p1XMCMKQAkVg76m298xZBSYmhtI4fT4gaapLYZuepiAxsfjTJPHQVyrvCYwf19A2IE/BFmKTyIky9kGUVVn2OYCNMN7zVzI4F9BoE64sK7BZpll67eWIrqB+virNjBr8iIY24aqtm+Hi++XqPbVpeqGdLVvTaTyx7e9vr8s8Cme0Bi1w5sHlP1/ezxeU1jWzc8w2AnKEzLEaxGDM5cdvOs7QMKChoaH1Uvng4ukNYLkLdq3YP9nm2Du0NWgihkZEHNeQhpg5k0qOHAm0QFQuPuT8wFbTsWpw9tl0VENOlyCA3CXO+qrrYw68wuh5JIg+iqe+6mVB2uNMY4/kmCXwBwlvr443N0aBQqivgGV3OXMBplaK5rmzYFklaANkcvHhq3TeHHJxmInnLIU6ZZpaPbMG0TRBJRTu86uPjalc2mZhE5DHojSi4f4JNXIca2XkYmdoKofXY30ug9f252z79ea/MQK14OLdZz3meHf7ihfDM1vB0yF48vbTSbHiVEDpsfaqfVIW46+R7BnvTlliJ237FSJKtD4th6sr0ChytyP+IsxvqzQshjoRV9QAAAAASUVORK5CYII=", "wink": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACN0lEQVR42u2VTW7UUBCEv2obCaQIIg7ASVixisgV2EfAZZAAiQNwAcTPCThJbhBWLMZdLPrZYyeMxwwrJN5oJM+899zV1dXV8H/9Y0trmz9eXjiiBxkPCRFIQZJ10/WGzmAbSyDBkCgECNsgIYFdVx6++3Iwbr+KVlEBLAhBV0HkmNKRjQVWtOyM+6720ygCGhhCyLnKUL/OXwPi9tMqZgRhSIEisPdU23vmrAITI0NpnD4dkDTWpbCNq1OQmJj9aZK4fVeq2yMYH9fQOiCPwWZik8iRMvZBlFVZ9jmAjTDe81cyOBXQYBOuLCuwmadZem3liKagtr8ozYQa/DcaUrdshicfv0/P1y+eTm2aTTc61tIGW9sB3Vxd1PGIvYi7gDyclZuiJU3sHATfgQdx8+q55WoWYx59+KbDDPV985CxY3znxQtAMs67jva7szm0Du06bBMEvpXsApD6mF4slRyPtoZVV7zBajVuq5Ju3jRfC8k73QQBuUuc9dVcI54FnzpnjNeseOyrVhakPc409kAOWQK/lfD66Hh9aRQohNoImHeXM2dgaqRo8p0Zy2qCBsjk7P1X6TQfcnGYiacshRplk9Yyy4hGB5VQuPlXs42xXFpnYRWQh6I0osPtE+rIYaiRkbNe11gOL219KoOX50+Z9svJf2kE6oKzt5917OL11TMe9w9sBff74N6bT5tixVZA6aHmqr0pi+HnwOgGuy1DbNO0XyCiROttOZyfgwaRux3xB2F+AfRWIdwAS6x4AAAAAElFTkSuQmCC", "lookL": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACNElEQVR42u2VTYoUURCEv8gqQWHQwQN4EleuBucK7gf1MoIKHsALiD8n8CRzg3HloivDRb76G+nqclwJvqahut97lRGRkZnwf/1jS1ubP15eOKIHGQ8JEUhBknXT9YbOYBtLIMGQKAQI2yAhgV1XHr77cjRuv4lWUQEsCEFXQeSY6MjGAisaO+O+q/00ioAGhhBybirUb+vXgLj9tEoZQRhSoAjsWWp7Vs4qMDEqlMbpuwOSxrwUtnF1ChITiz9NErfvSnV7BOPTHtoG5DHYwmwSOUrGHERZmWXmADbCeNavbHBXQINNuFhWYLOkWX5t6YjmoLa/Ss2EGvw3HlI3p+TJx+/T8/WLp6syzeYbnTprsLUf0M3VRR2PmE3cBeRxVm6OljSpc5wgeBA3r55brmIx5tGHbzquUN+3HjJWjH9jugIk41x3tGNnc2gV2nXYJgh8i+wKkPqYXiyVHU+WhlVXvKPVatxWkW69ablWlne6GQLykDjrq6VHvAg+Vc4Yr7Xisa5aWpBmnGnsgRyyDH6L8PboeH1pFCiE2ghYVpczF2BqpGjqOwuV1QwNkMnZ+6/S3fqQS8NMPLEUapJNXsusRjR2UAmFW/9qbWNMl7ZV2ATkoSSN6HD7hDpyGGpk5KLWNabD67Y+pcHr83eZ9uvJf2kE6oKzt5916uL11TMe9w9sBff74N6bT7tixV5A6aHmqr2LxfBzYOwGhz1DbNe0XyGiTOt9HM7PQYPIw4H4gzC/AMtEIdzbh+ViAAAAAElFTkSuQmCC", "lookR": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAUCAYAAADlep81AAACOklEQVR42u2VTW7UUBCEv2obCaQIIg7ASbJiFZErZB8Bl0ECJA7ABRA/J+AkuUFYsRh3sehnjz1hHBNWSLzRSJ5577mrq6ur4f/6x5bWNn+8PHdEDzIeEiKQgiTrpusNncE2lkCCIVEIELZBQgK7rjx+9+Vo3H4VraICWBCCroLIMaUjGwusaNkZ913tp1EENDCEkHOVoX6dvwbE7adVzAjCkAJFYO+ptvfMWQUmRobSOH1/QNJYl8I2rk5BYmL2p0ni8K5Ut0cwvltD64A8BpuJTSJHytgHUVZl2ecANsJ4z1/J4L6ABptwZVmBzTzN0msrRzQFtf1FaSbU4L/RkLrbzfDs4/fp+fryDJV2wbdb9tZZg63tgG6uzut4xF7EXUAez8pN0ZImdo4nCB7EzasXlqtZjHny4ZuOM9T3zUPGjlkGub48WwKScf7e0Q7P5tA6tOuwTRD4INkFIPUxvVgqOd7ZGlZd8Qar1bitSrp503wtJO90EwTkLnHWV3ONeBZ86pwxXrPisa9aWZD2ONPYAzlkCfwg4fXR8frCKFAItREw7y5nzsDUSNHkOzOWVRZigExO3n+V7udDLg4z8ZSlUKNs0lpmGdHooBIKN/9qtjGWS+ssrALyUJRGdLh9Qh05DDUyctbrGsvhpa1PZfDy/H2m/XLyXxiBuuDk7WfddfH66jlP+0e2god98ODNp02xYiug9FBz1d6UxfBzYHSD3ZYhtmnaLxBRovW2HE5PQYPI3Y74gzC/AIOkIdyp4BvjAAAAAElFTkSuQmCC"};
+function petEngine(root,SP,o){
+  o=o||{};
+  var H=o.h||56,Wd=Math.round(H*1.8);
+  var wrap=document.createElement('div');
+  wrap.style.cssText='position:absolute;bottom:0;left:0;width:'+Wd+'px;height:'+(H+Math.round(H*.7))+'px';
+  var fx=document.createElement('div');
+  fx.style.cssText='position:absolute;left:0;right:0;top:0;text-align:center;font-size:'+Math.round(H*.45)+'px;line-height:1';
+  var img=document.createElement('img');
+  img.style.cssText='position:absolute;bottom:0;left:0;width:'+Wd+'px;height:'+H+'px;image-rendering:pixelated;transform-origin:50% 100%;pointer-events:'+(o.tap?'auto':'none');
+  wrap.appendChild(fx);wrap.appendChild(img);root.appendChild(wrap);
+  var x=Math.random()*Math.max(1,root.clientWidth-Wd),dir=1,st='idle',until=0,jt=0,rx=null,sleep=false,last=Date.now(),cur='',taps=[];
+  function pick(t){var r=Math.random();
+    if(r<.42){st='walk';dir=Math.random()<.5?-1:1;until=t+2500+Math.random()*3500}
+    else if(r<.58){st='idle';until=t+1500+Math.random()*2500}
+    else if(r<.68){st='jump';jt=t;until=t+800}
+    else if(r<.77){st='look';until=t+2400}
+    else if(r<.83){st='think';until=t+2200}
+    else if(r<.89){st='hum';until=t+2400}
+    else if(r<.93){st='wink';until=t+1200}
+    else if(r<.97){st='yawn';until=t+2000}
+    else{st='idle';until=t+1500}}
+  function react(key,e,ms,hop){rx={key:key,fx:e,end:Date.now()+ms,t0:Date.now(),hop:!!hop};sleep=false;last=Date.now()}
+  function poke(){var w=sleep;sleep=false;last=Date.now();if(w)react('shock','\u2757',700,true)}
+  img.addEventListener('click',function(){
+    var t=Date.now();taps.push(t);taps=taps.filter(function(v){return t-v<4000});
+    if(taps.length>=5){taps=[];react('angry','\uD83D\uDCA2',1700,false)}
+    else if(sleep)poke();
+    else react('love','\u2764\uFE0F',1500,true)});
+  var iv=setInterval(function(){
+    var t=Date.now(),mx=Math.max(0,root.clientWidth-Wd),key='a',oy=0,sy=1,e='',rot=0,ox=0;
+    if(rx&&t>rx.end)rx=null;
+    if(rx){key=rx.key;e=rx.fx;if(rx.hop)oy=-Math.abs(Math.sin((t-rx.t0)/150))*H*.4;
+      if(key==='angry')ox=Math.sin(t/35)*H*.05;
+      if(key==='dizzy')rot=Math.sin(t/110)*8}
+    else if(sleep){key='sleepy';e='\uD83D\uDCA4'}
+    else{
+      if(o.sleepy&&t-last>o.sleepy){sleep=true}
+      if(t>until)pick(t);
+      if(st==='walk'){x+=dir*H*.05;if(x<0){x=0;dir=1}if(x>mx){x=mx;dir=-1}key=['c','a','d','a'][Math.floor(t/150)%4]}
+      else if(st==='jump'){var p=(t-jt)/800;key=(p<.15||p>.85)?'b':'a';if(p>=.15&&p<=.85)oy=-Math.sin((p-.15)/.7*Math.PI)*H*.7}
+      else if(st==='look'){key=((t>>9)&1)?'lookL':'lookR'}
+      else if(st==='think'){key='lookR';e='\u2753'}
+      else if(st==='hum'){key='happy';e='\u266A';oy=-Math.abs(Math.sin(t/200))*H*.12}
+      else if(st==='wink'){key='wink';e='\u2728'}
+      else if(st==='yawn'){key='sleepy';e='\uD83E\uDD71'}
+      else{sy=1+Math.sin(t/350)*.025;if(Math.floor(t/100)%41===0)key='blink'}
+    }
+    if(cur!==key){cur=key;img.src=SP[key]}
+    fx.textContent=e;
+    wrap.style.transform='translate('+Math.round(x+ox)+'px,'+Math.round(oy)+'px)';
+    img.style.transform='rotate('+rot+'deg) scaleY('+sy+')';
+  },80);
+  return {react:react,poke:poke,stop:function(){clearInterval(iv);if(wrap.parentNode)wrap.parentNode.removeChild(wrap)}};
+}
+function petHtml(){return '<!DOCTYPE html><html><body style="margin:0;background:transparent;overflow:hidden"><div id="w" style="position:absolute;left:0;right:0;top:0;bottom:0"></div><script>var SP='+JSON.stringify(PET_SP)+';'+petEngine.toString()+';petEngine(document.getElementById("w"),SP,{h:56});<\/script></body></html>'}
+let PET=null;
+function petInit(){
+  if(PET){PET.stop();PET=null}
+  const box=$('#petbox');
+  if(S.pet&&box)PET=petEngine(box,PET_SP,{h:52,tap:true,sleepy:45000});
+}
+$$('[data-pt]').forEach(b=>b.onclick=()=>{S.pet=b.dataset.pt==='1';save();fill();petInit()});
+$$('[data-pa]').forEach(b=>b.onclick=()=>{S.pa=b.dataset.pa==='1';save();fill();ovCheck()});
+function unback(){try{if(native())plug().hideBack().catch(()=>{})}catch(e){}}
+let LP;
+function native(){const C=window.Capacitor;return !!(C&&C.isNativePlatform&&C.isNativePlatform())}
+function pl(n){const C=window.Capacitor;return (C.Plugins&&C.Plugins[n])||(C.registerPlugin&&C.registerPlugin(n))}
+function plug(){return pl('Launch')}
+function applyHide(){try{if(native())plug().hideSelf({hide:!!S.hideself}).catch(()=>{})}catch(e){}}
+function hdrs(){try{return (window.Capacitor.PluginHeaders||[]).map(x=>x.name).join(',')}catch(e){return '?'}}
+async function launch(a){
+  S.last=a.p;save();apps();
+  const C=window.Capacitor,msg=t=>{$('#msg').textContent=t};
+  if(!native()){msg('Запуск програм працює тільки в APK');return}
+  msg('Запускаю: '+a.n+'…');
+  let m='';
+  try{
+    if(S.back||S.timer>0){
+      let ok=false;try{ok=(await plug().canOverlay()).ok}catch(x){}
+      if(ok){await plug().showBack();if(S.timer>0)await plug().startTimer({sec:S.timer,pkg:a.p})}
+    }
+    if(S.ac){try{const st=await plug().clickStatus();if(st.overlay)await plug().showClicker()}catch(x){}}
+    if(S.pa){try{const st=await plug().clickStatus();if(st.overlay)await plug().showPet({html:petHtml()})}catch(x){}}
+    await Promise.race([plug().open({pkg:a.p,hide:!!S.hide}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('немає відповіді 4 с')),4000))]);
+    msg('Відкрито: '+a.n);return;
+  }catch(e){m=(e&&e.message)||String(e)}
+  unback();
+  msg('Launch: '+m+' | плагіни: '+hdrs());
+  try{const r=await pl('AppLauncher').openUrl({url:a.p});msg('Launch: '+m+' | AppLauncher: '+JSON.stringify(r)+' | плагіни: '+hdrs())}
+  catch(x){msg('Launch: '+m+' | AppLauncher: '+((x&&x.message)||String(x))+' | плагіни: '+hdrs())}
+}
+
+function fill(){$('#c1').value=S.c1;$('#c2').value=S.c2;$('#c3').value=S.c3;$('#c4').value=S.c4;$('#c5').value=S.c5;$('#smsg').textContent='';
+  $$('[data-th]').forEach(b=>b.classList.toggle('a',b.dataset.th===S.theme));
+  $$('[data-hd]').forEach(b=>b.classList.toggle('a',(b.dataset.hd==='1')===!!S.hide));
+  $$('[data-hs]').forEach(b=>b.classList.toggle('a',(b.dataset.hs==='1')===!!S.hideself));
+  $$('[data-bk]').forEach(b=>b.classList.toggle('a',(b.dataset.bk==='1')===!!S.back));
+  $$('[data-id]').forEach(b=>b.classList.toggle('a',+b.dataset.id===S.idle));
+  $$('[data-lk]').forEach(b=>b.classList.toggle('a',(b.dataset.lk==='1')===!!S.lkOn));
+  $$('[data-ln]').forEach(b=>b.classList.toggle('a',+b.dataset.ln===S.lkN));
+  $$('[data-lm]').forEach(b=>b.classList.toggle('a',+b.dataset.lm===S.lkMin));
+  $$('[data-bf]').forEach(b=>b.classList.toggle('a',(b.dataset.bf==='1')===!!S.bf));
+  $$('[data-pt]').forEach(b=>b.classList.toggle('a',(b.dataset.pt==='1')===!!S.pet));
+  $$('[data-pa]').forEach(b=>b.classList.toggle('a',(b.dataset.pa==='1')===!!S.pa))}
+$$('[data-th]').forEach(b=>b.onclick=()=>{S.theme=b.dataset.th;theme();save();fill()});
+$$('[data-hd]').forEach(b=>b.onclick=()=>{S.hide=b.dataset.hd==='1';save();fill()});
+$$('[data-hs]').forEach(b=>b.onclick=()=>{S.hideself=b.dataset.hs==='1';save();fill();applyHide()});
+$('#adda').onclick=()=>{const n=$('#an').value.trim(),p=$('#ap').value.trim();
+  if(n&&/^[\w.]+$/.test(p)){S.apps.push({n,p,e:$('#ae').value.trim()});save();$('#an').value=$('#ap').value=$('#ae').value='';$('#af').style.display='none';apps();$('#msg').textContent='Програму додано'}
+  else $('#msg').textContent='Вкажіть назву та коректний пакет'};
+$('#save').onclick=()=>{const a=$('#c1').value.trim(),b=$('#c2').value.trim(),c=$('#c3').value.trim(),d=$('#c4').value.trim(),e=$('#c5').value.trim(),ok=/^\d{3,8}$/;
+  if(!ok.test(a)||!ok.test(b)||!ok.test(c)||!ok.test(d)||!ok.test(e)){$('#smsg').textContent='Коди: 3–8 цифр';return}
+  if(new Set([a,b,c,d,e]).size<5){$('#smsg').textContent='Коди мають відрізнятись';return}
+  S.c1=a;S.c2=b;S.c3=c;S.c4=d;S.c5=e;save();$('#smsg').textContent='Збережено ✓'};
+function lock(){if(pick)return;$$('.ov').forEach(o=>o.classList.remove('on'));ex='';show('0');$('#msg').textContent=''}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)lock();else unback()});
+window.addEventListener('focus',unback);
+window.addEventListener('pagehide',lock);
+window.addEventListener('pageshow',lock);
+petInit();
+applyHide();
+</script>
+</body>
+</html>
