@@ -27,6 +27,24 @@ jobs:
           D=android/app/src/main/java/com/example/calc
           mkdir -p $D
           cp "$(ls plugin-*.java | sort -V | tail -1)" $D/LaunchPlugin.java
+          cp "$(ls service-*.java | sort -V | tail -1)" $D/ClickService.java
+          mkdir -p android/app/src/main/res/xml android/app/src/main/res/values
+          cat > android/app/src/main/res/xml/accessibility_service_config.xml << 'EOF3'
+          <?xml version="1.0" encoding="utf-8"?>
+          <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+            android:accessibilityEventTypes="typeWindowStateChanged"
+            android:accessibilityFeedbackType="feedbackGeneric"
+            android:canPerformGestures="true"
+            android:description="@string/click_desc"
+            android:notificationTimeout="100" />
+          EOF3
+          cat > android/app/src/main/res/values/click_strings.xml << 'EOF3'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+            <string name="click_desc">Автоклікер: виконує натискання на екрані за вашою командою. Вміст екрана не читається.</string>
+          </resources>
+          EOF3
+          sed -i 's#</application>#    <service android:name=".ClickService" android:label="Калькулятор: автоклікер" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true"><intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter><meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility_service_config" /></service>\n</application>#' android/app/src/main/AndroidManifest.xml
           cat > $D/MainActivity.java << 'EOF2'
           package com.example.calc;
 
